@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="StemPlayer">
-    <title>Stem Player 2.2</title>
+    <title>Just So Song Player</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -596,6 +596,15 @@
         }
         .cache-badge.cached  { border-color: #34d399; color: #34d399; }
         .cache-badge.offline { border-color: #f59e0b; color: #f59e0b; }
+
+        /* ── Instrumental-only: vocal + pitch permanently disabled ── */
+        .control-section.instr-only { opacity: 0.35; pointer-events: none; }
+        .control-section.instr-only .section-label::after {
+            content: ' — instrumental only';
+            font-size: 9px;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -603,7 +612,7 @@
 <header>
     <button class="mobile-menu-btn" id="menuBtn" onclick="toggleSidebar()" title="Song list">&#9776;</button>
     <h1>Stem Player</h1>
-    <span class="version">v2.2</span>
+    <span class="version">v2.3</span>
     <span class="cache-badge" id="cacheBadge"></span>
 </header>
 
@@ -1494,6 +1503,7 @@ let pitchSemitones = 0;
 let regionInFrac  = 0;   // 0.0 – 1.0
 let regionOutFrac = 1;   // 0.0 – 1.0
 let loopRegion    = true;
+let hasVocal      = true;   // false when song has no vocal stem
 
 function regionIsActive() {
     return regionInFrac > 0.001 || regionOutFrac < 0.999;
@@ -1606,21 +1616,29 @@ async function selectSong(name) {
     try {
         await initAudioContext();
 
-        const [instrResp, vocalResp] = await Promise.all([
-            fetch(library[name].instr),
-            fetch(library[name].vocal)
-        ]);
-        if (!instrResp.ok) throw new Error('Could not load instrumental: ' + instrResp.status);
-        if (!vocalResp.ok) throw new Error('Could not load vocal: ' + vocalResp.status);
-        const [instrArr, vocalArr] = await Promise.all([
-            instrResp.arrayBuffer(),
-            vocalResp.arrayBuffer()
-        ]);
+        hasVocal = !!(library[name].vocal);
 
-        [instrBuffer, vocalBuffer] = await Promise.all([
-            audioCtx.decodeAudioData(instrArr),
-            audioCtx.decodeAudioData(vocalArr)
-        ]);
+        if (hasVocal) {
+            const [instrResp, vocalResp] = await Promise.all([
+                fetch(library[name].instr),
+                fetch(library[name].vocal)
+            ]);
+            if (!instrResp.ok) throw new Error('Could not load instrumental: ' + instrResp.status);
+            if (!vocalResp.ok)  throw new Error('Could not load vocal: '        + vocalResp.status);
+            const [instrArr, vocalArr] = await Promise.all([
+                instrResp.arrayBuffer(),
+                vocalResp.arrayBuffer()
+            ]);
+            [instrBuffer, vocalBuffer] = await Promise.all([
+                audioCtx.decodeAudioData(instrArr),
+                audioCtx.decodeAudioData(vocalArr)
+            ]);
+        } else {
+            const instrResp = await fetch(library[name].instr);
+            if (!instrResp.ok) throw new Error('Could not load instrumental: ' + instrResp.status);
+            instrBuffer = await audioCtx.decodeAudioData(await instrResp.arrayBuffer());
+            vocalBuffer = null;
+        }
 
         instrReady = null;
         vocalReady = null;
@@ -1642,11 +1660,11 @@ async function selectSong(name) {
 // SoundTouch processing — runs in main thread, no AudioWorklet needed
 // ══════════════════════════════════════════════════════════════════════════════
 async function processBuffersIfNeeded() {
-    if (tempoRatio === lastProcessedTempo && pitchSemitones === lastProcessedPitch && instrReady && vocalReady) return;
+    if (tempoRatio === lastProcessedTempo && pitchSemitones === lastProcessedPitch && instrReady && (!hasVocal || vocalReady)) return;
 
     if (tempoRatio === 1.0 && pitchSemitones === 0) {
         instrReady = instrBuffer;
-        vocalReady = vocalBuffer;
+        vocalReady = hasVocal ? vocalBuffer : null;
         lastProcessedTempo = 1.0;
         lastProcessedPitch = 0;
         return;
@@ -1656,7 +1674,7 @@ async function processBuffersIfNeeded() {
     try {
         // Process sequentially to avoid memory spike on large files
         instrReady = await processOneBuffer(instrBuffer, tempoRatio, pitchSemitones);
-        vocalReady = await processOneBuffer(vocalBuffer, tempoRatio, pitchSemitones);
+        vocalReady = hasVocal ? await processOneBuffer(vocalBuffer, tempoRatio, pitchSemitones) : null;
         lastProcessedTempo = tempoRatio;
         lastProcessedPitch = pitchSemitones;
         setStatus('');
@@ -1768,12 +1786,14 @@ async function startPlayback() {
     const processedOffset = startOffset / tempoRatio;
 
     instrNode = audioCtx.createBufferSource();
-    vocalNode = audioCtx.createBufferSource();
     instrNode.buffer = instrReady;
-    vocalNode.buffer = vocalReady;
-
     instrNode.connect(masterFadeNode);   // instr → master fade → destination
-    vocalNode.connect(vocalGainNode);    // vocal → vocal gain → master fade → destination
+
+    if (hasVocal && vocalReady) {
+        vocalNode = audioCtx.createBufferSource();
+        vocalNode.buffer = vocalReady;
+        vocalNode.connect(vocalGainNode);  // vocal → vocal gain → master fade → destination
+    }
 
     // Schedule fade-in if we started before the region IN point (pre-roll)
     const inTime = regionIsActive() ? regionInFrac * instrBuffer.duration : -1;
@@ -1787,7 +1807,7 @@ async function startPlayback() {
     }
 
     instrNode.start(0, processedOffset);
-    vocalNode.start(0, processedOffset);
+    if (vocalNode) vocalNode.start(0, processedOffset);
 
     instrNode.onended = onTrackEnded;
 
@@ -2122,7 +2142,7 @@ function renderPlayer() {
         </div>
 
         <div class="controls-row">
-            <div class="control-section">
+            <div class="control-section" id="vocalSection">
                 <div class="section-label">Vocal Guide Volume</div>
                 <div class="slider-row">
                     <span class="slider-end-label">Off</span>
@@ -2196,6 +2216,11 @@ function renderPlayer() {
     updateRegionFill();
     updateRegionDisplay();
     updatePresetButtons();
+    // Grey out vocal + pitch for instrumental-only tracks
+    ['vocalSection', 'pitchSection'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('instr-only', !hasVocal);
+    });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
