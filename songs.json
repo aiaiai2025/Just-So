@@ -2,54 +2,58 @@
   "showTitle": "Just So",
   "songs": [
     {
-      "title": "A01 Oh My Best Beloved",
-      "vocal": "audio/a01-oh-my-best-beloved-vocals.mp3",
-      "instr": "audio/a01-oh-my-best-beloved-instrumental.mp3"
+      "title": "a01-oh-my-best-beloved",
+      "instr": "audio/a01-oh-my-best-beloved-instrumental.mp3",
+      "vocal": "audio/a01-oh-my-best-beloved-vocals.mp3"
     },
     {
-      "title": "A02 Down Under",
-      "vocal": "audio/a02-down-under-vocals.mp3",
-      "instr": "audio/a02-down-under-instrumental.mp3"
+      "title": "a02-down-under",
+      "instr": "audio/a02-down-under-instrumental.mp3",
+      "vocal": "audio/a02-down-under-vocals.mp3"
     },
     {
-      "title": "A03 Orangutang Chef",
-      "vocal": "audio/a03-orangutang-chef-vocals.mp3",
-      "instr": "audio/a03-orangutang-chef-instrumental.mp3"
+      "title": "a03-orangutang-chef",
+      "instr": "audio/a03-orangutang-chef-instrumental.mp3",
+      "vocal": "audio/a03-orangutang-chef-vocals.mp3"
     },
     {
-      "title": "A04 Orangutang Chef Reprise",
-      "vocal": "audio/a04-orangutang-chef-reprise-vocals.mp3",
-      "instr": "audio/a04-orangutang-chef-reprise-instrumental.mp3"
+      "title": "a04-orangutang-chef-reprise",
+      "instr": "audio/a04-orangutang-chef-reprise-instrumental.mp3",
+      "vocal": "audio/a04-orangutang-chef-reprise-vocals.mp3"
     },
     {
-      "title": "A05a Singing Magic Girl Cat",
-      "vocal": "audio/a05a-singing-magic-girl-cat-vocals.mp3",
-      "instr": "audio/a05a-singing-magic-girl-cat-instrumental.mp3"
+      "title": "a05a-singing-magic-girl-cat",
+      "instr": "audio/a05a-singing-magic-girl-cat-instrumental.mp3",
+      "vocal": "audio/a05a-singing-magic-girl-cat-vocals.mp3"
     },
     {
-      "title": "A05b Singing Magic Boy Cat",
-      "vocal": "audio/a05b-singing-magic-boy-cat-vocals.mp3",
-      "instr": "audio/a05b-singing-magic-boy-cat-instrumental.mp3"
+      "title": "a05b-singing-magic-boy-cat",
+      "instr": "audio/a05b-singing-magic-boy-cat-instrumental.mp3",
+      "vocal": "audio/a05b-singing-magic-boy-cat-vocals.mp3"
     },
     {
-      "title": "A06 Purr",
-      "vocal": "audio/a06-purr-vocals.mp3",
-      "instr": "audio/a06-purr-instrumental.mp3"
+      "title": "a06-purr",
+      "instr": "audio/a06-purr-instrumental.mp3",
+      "vocal": "audio/a06-purr-vocals.mp3"
     },
     {
-      "title": "A07 Limpopo",
-      "vocal": "audio/a07-limpopo-vocals.mp3",
-      "instr": "audio/a07-limpopo-instrumental.mp3"
+      "title": "a07-limpopo",
+      "instr": "audio/a07-limpopo-instrumental.mp3",
+      "vocal": "audio/a07-limpopo-vocals.mp3"
     },
     {
-      "title": "A08 Ive Got A Nose",
-      "vocal": "audio/a08-ive-got-a-nose-vocals.mp3",
-      "instr": "audio/a08-ive-got-a-nose-instrumental.mp3"
+      "title": "a07-limptrack",
+      "instr": "audio/a07-limptrack-instrumental.mp3"
     },
     {
-      "title": "A09 Sound Of Sunrise",
-      "vocal": "audio/a09-sound-of-sunrise-vocals.mp3",
-      "instr": "audio/a09-sound-of-sunrise-instrumental.mp3"
+      "title": "a08-ive-got-a-nose",
+      "instr": "audio/a08-ive-got-a-nose-instrumental.mp3",
+      "vocal": "audio/a08-ive-got-a-nose-vocals.mp3"
+    },
+    {
+      "title": "a09-sound-of-sunrise",
+      "instr": "audio/a09-sound-of-sunrise-instrumental.mp3",
+      "vocal": "audio/a09-sound-of-sunrise-vocals.mp3"
     }
   ]
 }
