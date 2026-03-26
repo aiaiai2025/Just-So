@@ -1576,7 +1576,7 @@ async function loadManifest() {
 function renderSongList() {
     const list = document.getElementById('songList');
     const pairs = Object.keys(library)
-        .filter(n => library[n].vocal && library[n].instr)
+        .filter(n => library[n].instr)   // vocal is optional (instrumental-only tracks allowed)
         .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
     if (pairs.length === 0) {
