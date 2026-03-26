@@ -2141,7 +2141,7 @@ function renderPlayer() {
         </div>
 
         <div class="controls-row">
-            <div class="control-section" id="vocalSection">
+            <div class="control-section${hasVocal ? '' : ' instr-only'}" id="vocalSection">
                 <div class="section-label">Vocal Guide Volume</div>
                 <div class="slider-row">
                     <span class="slider-end-label">Off</span>
@@ -2173,7 +2173,7 @@ function renderPlayer() {
                 </div>
             </div>
             <div class="controls-divider"></div>
-            <div class="control-section" id="pitchSection">
+            <div class="control-section${hasVocal ? '' : ' instr-only'}" id="pitchSection">
                 <div class="section-label">Key (semitones)</div>
                 <div class="slider-row">
                     <span class="slider-end-label">−5</span>
@@ -2215,11 +2215,6 @@ function renderPlayer() {
     updateRegionFill();
     updateRegionDisplay();
     updatePresetButtons();
-    // Grey out vocal + pitch for instrumental-only tracks
-    ['vocalSection', 'pitchSection'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('instr-only', !hasVocal);
-    });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
