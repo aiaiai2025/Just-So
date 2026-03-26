@@ -1,57 +1,55 @@
 // ══════════════════════════════════════════════════════════════════════════════
 // Stem Player — Service Worker
 //
-// HOW TO UPDATE when you change songs or audio files:
-//   Bump the version number below (e.g. 'v2' → 'v3') and re-upload this file.
-//   The next time a user visits with internet, everything re-caches automatically.
+// Two-track caching strategy:
+//   • songs.json, index.html, manifest.json → NETWORK-FIRST
+//     Always fetches fresh from server when online; falls back to cache offline.
+//     This ensures a newly added song appears immediately on next page load.
+//
+//   • Audio files (.mp3, .wav, etc.) → CACHE-FIRST
+//     Served from cache instantly; only hits network if not yet cached.
+//     Makes offline playback fast and reliable.
+//
+// HOW TO FORCE a full re-cache (e.g. you replaced an audio file with same name):
+//   Bump CACHE_VERSION below (v1 → v2) and re-upload sw.js.
+//   All users will re-download everything on their next visit with internet.
 // ══════════════════════════════════════════════════════════════════════════════
 const CACHE_VERSION = 'v1';
 const CACHE_NAME    = 'stem-player-' + CACHE_VERSION;
 
-// App shell — always cache these
-const SHELL = [
-    './',
-    './index.html',
-    './songs.json',
-    './manifest.json',
-];
+const AUDIO_EXT = /\.(mp3|wav|m4a|aiff|ogg|flac)(\?.*)?$/i;
 
-// ── Install: cache shell + all audio files listed in songs.json ──────────────
+// ── Install: pre-cache app shell + all audio files in songs.json ──────────────
 self.addEventListener('install', event => {
     event.waitUntil(
         (async () => {
             const cache = await caches.open(CACHE_NAME);
 
             // Cache the app shell
-            await cache.addAll(SHELL);
+            await cache.addAll(['./', './index.html', './songs.json', './manifest.json']);
 
-            // Read songs.json and cache every audio file it references
+            // Read songs.json and pre-cache every audio file it lists
             try {
                 const resp = await fetch('./songs.json');
                 if (resp.ok) {
                     const data  = await resp.json();
                     const songs = Array.isArray(data) ? data : (data.songs || []);
                     const audioUrls = songs.flatMap(s => [s.vocal, s.instr]).filter(Boolean);
-                    // Cache audio files one at a time so a single failure doesn't abort all
                     for (const url of audioUrls) {
-                        try {
-                            await cache.add(url);
-                        } catch(e) {
-                            console.warn('[SW] Could not cache:', url, e.message);
-                        }
+                        try { await cache.add(url); }
+                        catch(e) { console.warn('[SW] Could not pre-cache:', url, e.message); }
                     }
                 }
             } catch(e) {
                 console.warn('[SW] Could not read songs.json during install:', e.message);
             }
 
-            // Skip waiting so the new SW activates immediately
             await self.skipWaiting();
         })()
     );
 });
 
-// ── Activate: delete old caches ───────────────────────────────────────────────
+// ── Activate: delete stale caches ─────────────────────────────────────────────
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys()
@@ -62,29 +60,49 @@ self.addEventListener('activate', event => {
     );
 });
 
-// ── Fetch: cache-first, fall back to network ──────────────────────────────────
+// ── Fetch ─────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', event => {
-    // Only handle GET requests
     if (event.request.method !== 'GET') return;
 
-    event.respondWith(
-        caches.match(event.request).then(cached => {
-            if (cached) return cached;
-            // Not in cache — try network, and cache the response for next time
-            return fetch(event.request).then(response => {
-                if (response.ok) {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-                }
-                return response;
-            }).catch(() => {
-                // Network failed and nothing cached — return a simple offline message
-                // (only affects non-audio requests; audio is pre-cached at install time)
-                return new Response('Offline — content not cached', {
-                    status: 503,
-                    headers: { 'Content-Type': 'text/plain' }
-                });
-            });
-        })
-    );
+    const url = new URL(event.request.url);
+
+    if (AUDIO_EXT.test(url.pathname)) {
+        // ── CACHE-FIRST for audio files ───────────────────────────────────────
+        event.respondWith(
+            caches.match(event.request).then(cached => {
+                if (cached) return cached;
+                // Not cached yet — fetch, cache, and return
+                return fetch(event.request).then(response => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+                    }
+                    return response;
+                }).catch(() => new Response('Audio not available offline', {
+                    status: 503, headers: { 'Content-Type': 'text/plain' }
+                }));
+            })
+        );
+    } else {
+        // ── NETWORK-FIRST for everything else (songs.json, HTML, manifest) ───
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    // Update the cache with the fresh response
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => {
+                    // Offline — serve from cache as fallback
+                    return caches.match(event.request).then(cached =>
+                        cached || new Response('Offline — content not cached', {
+                            status: 503, headers: { 'Content-Type': 'text/plain' }
+                        })
+                    );
+                })
+        );
+    }
 });
