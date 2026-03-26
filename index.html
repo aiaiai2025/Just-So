@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="StemPlayer">
-    <title>Just So Song Player</title>
+    <title>Stem Player 2.3</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1604,6 +1604,7 @@ async function selectSong(name) {
     isPlaying = false;
     startOffset = 0;
     currentSong = name;
+    hasVocal = !!(library[name].vocal);   // must be set before renderPlayer()
 
     document.querySelectorAll('.song-item').forEach(el => {
         el.classList.toggle('active', el.textContent === name);
@@ -1615,8 +1616,6 @@ async function selectSong(name) {
 
     try {
         await initAudioContext();
-
-        hasVocal = !!(library[name].vocal);
 
         if (hasVocal) {
             const [instrResp, vocalResp] = await Promise.all([
